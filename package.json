@@ -1,0 +1,20 @@
+{
+  "name": "saas-starter",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,magenta \"npm run dev -w @saas/api\" \"npm run dev -w @saas/web\"",
+    "build": "npm run build -w @saas/api && npm run build -w @saas/web",
+    "lint": "npm run lint -w @saas/api && npm run lint -w @saas/web",
+    "typecheck": "npm run typecheck -w @saas/api && npm run typecheck -w @saas/web",
+    "test": "npm run test -w @saas/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
