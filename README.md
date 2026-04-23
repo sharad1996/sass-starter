@@ -29,8 +29,8 @@ Production-minded monorepo with a Next.js App Router client, Express API on Node
 
 2. Configure environment files:
 
-   - Copy `apps/api/.env.example` to `apps/api/.env` and set secrets (minimum 32 characters for JWT secrets). `CORS_ORIGIN` is a comma-separated list—include both `http://localhost:PORT` and `http://127.0.0.1:PORT` if you use either hostname, or registration will fail in the browser.
-   - Copy `apps/web/.env.example` to `apps/web/.env.local` and point `NEXT_PUBLIC_API_URL` at the API (default `http://localhost:4000`).
+   - Copy `apps/api/.env.example` to `apps/api/.env` and set secrets (minimum 32 characters for JWT secrets). `CORS_ORIGIN` is a comma-separated list—include the origins your **Next.js** app uses (e.g. `http://localhost:3000` and `http://127.0.0.1:3000`) so the API accepts requests from the Next dev server (including the built-in `/api/v1` proxy).
+   - Copy `apps/web/.env.example` to `apps/web/.env.local`. **Recommended:** set only `INTERNAL_API_URL` (e.g. `http://127.0.0.1:4000`) and leave `NEXT_PUBLIC_API_URL` unset so the browser talks to same-origin `/api/v1/...`—that way signup and refresh **httpOnly** cookies always match the page host. Optionally set `NEXT_PUBLIC_API_URL` to call the API directly (then hostnames must align with cookie rules).
 
 3. Install and run:
 
@@ -39,7 +39,7 @@ Production-minded monorepo with a Next.js App Router client, Express API on Node
    npm run dev
    ```
 
-   The API listens on port `4000` and the web app on `3000`.
+   The API listens on port `4000` and the web app on `3000` by default (Next may pick another port if `3000` is busy).
 
 ## Authentication model
 

@@ -9,7 +9,7 @@
     "build": "npm run build -w @saas/api && npm run build -w @saas/web",
     "lint": "npm run lint -w @saas/api && npm run lint -w @saas/web",
     "typecheck": "npm run typecheck -w @saas/api && npm run typecheck -w @saas/web",
-    "test": "npm run test -w @saas/api"
+    "test": "npm run test -w @saas/api && npm run test -w @saas/web"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
