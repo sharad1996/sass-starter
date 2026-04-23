@@ -2,6 +2,8 @@
   "name": "@saas/api",
   "version": "1.0.0",
   "private": true,
+  "author": "sharad kumar",
+  "description": "Express REST API with MongoDB, JWT + refresh sessions, RBAC, and Stripe-style billing mock.",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",

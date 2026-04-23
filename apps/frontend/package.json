@@ -2,6 +2,8 @@
   "name": "@saas/web",
   "version": "1.0.0",
   "private": true,
+  "author": "sharad kumar",
+  "description": "Next.js App Router UI with auth, dashboard, billing lab, and admin views.",
   "scripts": {
     "dev": "next dev --turbopack --hostname 127.0.0.1",
     "build": "next build",

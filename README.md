@@ -1,87 +1,152 @@
-# SaaS Starter (Next.js + Node + MongoDB)
+# SaaS Starter
 
-Production-minded monorepo with a Next.js App Router client, Express API on Node 20+, MongoDB via Mongoose, JWT access tokens, rotating refresh tokens (httpOnly cookie + hashed storage), role-based access control, a Stripe-shaped mock for billing flows, and GitHub Actions CI.
+**Author:** sharad kumar  
 
-## Structure
+A production-minded **SaaS boilerplate**: sign up, sign in, role-based access, mock billing, and CI so you can focus on product features instead of wiring the same foundations again.
 
-- `apps/web` — Next.js 15 front-end with session bootstrap, dashboard, billing lab, and admin directory UI.
-- `apps/api` — Express API with helmet, CORS, rate limits, structured logging, and modular routers.
+---
 
-## Architecture
+## Tech stack
 
-- **HTTP layer** (`routes/*`): maps HTTP to application services—parsing, cookies, and status codes stay here.
-- **Application services** (`services/authApplication.service.ts`): owns session lifecycle rules, including refresh-token **reuse detection** (replay revokes every outstanding session for that user).
-- **Persistence** (`repositories/*`, `models/*`): repositories wrap Mongoose so services stay testable and queries stay centralized.
-- **Cross-cutting**: Pino logging with per-request `x-request-id`, redacted sensitive headers, `HttpError` mapping, and **Mongo transactions** when rotating refresh tokens.
+| Layer | Technology |
+| ----- | ---------- |
+| **Frontend** | [Next.js](https://nextjs.org/) 15 (App Router), React 19, TypeScript, Tailwind CSS 4 |
+| **Backend** | [Node.js](https://nodejs.org/) 20+, [Express](https://expressjs.com/) 4, TypeScript |
+| **Database** | [MongoDB](https://www.mongodb.com/) 7+ with [Mongoose](https://mongoosejs.com/) 8 |
+| **Auth** | JWT access tokens, opaque **refresh** tokens (http-only cookie), rotation + reuse detection, bcrypt password hashing |
+| **Validation** | [Zod](https://zod.dev/) |
+| **Logging** | [Pino](https://getpino.io/) with request correlation (`x-request-id`) |
+| **Billing (dev)** | Stripe-shaped **mock** (checkout session, completion, signed webhooks) |
+| **CI/CD** | [GitHub Actions](https://github.com/features/actions) — install, lint, typecheck, tests, build |
+
+---
+
+## What you get
+
+- **Auth**: Register, login, logout, refresh, `/me` with layered **routes → application services → repositories**.
+- **RBAC**: `USER` and `ADMIN`; admin-only user listing.
+- **Same-origin API in dev**: Next **rewrites** `/api/v1/*` to the Express server so cookies match your browser host (`localhost` vs `127.0.0.1`).
+- **Hardening**: Helmet, CORS (comma-separated allowlist), rate limits, structured errors.
+
+---
+
+## Monorepo layout
+
+| Path | Role |
+| ---- | ---- |
+| `apps/frontend` | Next.js UI (npm package `@saas/web`) |
+| `apps/backend` | Express API (npm package `@saas/api`) |
+| `.github/workflows` | CI pipeline |
+
+---
 
 ## Prerequisites
 
-- Node.js 20+
-- MongoDB 7+ (local or Atlas)
+- **Node.js** 20 or newer  
+- **MongoDB** 7+ (local instance, Docker, or Atlas)
+
+---
 
 ## Quick start
 
-1. Start MongoDB (Docker example):
+### 1. Start MongoDB (optional local example)
 
-   ```bash
-   docker compose up -d
-   ```
+```bash
+docker compose up -d
+```
 
-2. Configure environment files:
+### 2. Environment variables
 
-   - Copy `apps/api/.env.example` to `apps/api/.env` and set secrets (minimum 32 characters for JWT secrets). `CORS_ORIGIN` is a comma-separated list—include the origins your **Next.js** app uses (e.g. `http://localhost:3000` and `http://127.0.0.1:3000`) so the API accepts requests from the Next dev server (including the built-in `/api/v1` proxy).
-   - Copy `apps/web/.env.example` to `apps/web/.env.local`. **Recommended:** set only `INTERNAL_API_URL` (e.g. `http://127.0.0.1:4000`) and leave `NEXT_PUBLIC_API_URL` unset so the browser talks to same-origin `/api/v1/...`—that way signup and refresh **httpOnly** cookies always match the page host. Optionally set `NEXT_PUBLIC_API_URL` to call the API directly (then hostnames must align with cookie rules).
+**Backend** — copy `apps/backend/.env.example` → `apps/backend/.env` and set:
 
-3. Install and run:
+- `MONGODB_URI` — connection string  
+- `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` — each **at least 32 characters**  
+- `CORS_ORIGIN` — comma-separated list of origins your **Next** app uses (e.g. `http://localhost:3000`, `http://127.0.0.1:3000`, and alternate ports if Next picks them)
 
-   ```bash
-   npm install
-   npm run dev
-   ```
+**Frontend** — copy `apps/frontend/.env.example` → `apps/frontend/.env.local`:
 
-   The API listens on port `4000` and the web app on `3000` by default (Next may pick another port if `3000` is busy).
+- **Recommended:** set `INTERNAL_API_URL` (e.g. `http://127.0.0.1:4000`) and **leave `NEXT_PUBLIC_API_URL` unset** so the browser calls same-origin `/api/v1/...` (rewrites in `apps/frontend/next.config.ts`).  
+- **Optional:** set `NEXT_PUBLIC_API_URL` to call the API directly (then align hostnames with cookie / CORS rules).
 
-## Authentication model
+See the repo root `.env.example` for a combined reference.
 
-- **Access token**: short-lived JWT returned in JSON and kept in memory on the client for `Authorization` headers. The web client registers a recovery hook so one `TOKEN_INVALID` response triggers a refresh-cookie rotation and a single automatic retry.
-- **Refresh token**: opaque token stored as an httpOnly cookie by the API, hashed at rest, rotated inside a Mongo transaction on every refresh, revocable on logout, and invalidated in bulk if a revoked token is replayed.
+### 3. Install and run
+
+From the **repository root**:
+
+```bash
+npm install
+npm run dev
+```
+
+- **API** (default): `http://localhost:4000`  
+- **Web** (default): `http://127.0.0.1:3000` (Next may use another port if `3000` is busy — watch the terminal output)
+
+---
+
+## Architecture (backend)
+
+- **HTTP** (`routes/*`): validation, cookies, status codes only.  
+- **Application services** (`services/authApplication.service.ts`): session rules, including **refresh-token reuse** handling (replay revokes all sessions for that user).  
+- **Persistence** (`repositories/*`, `models/*`): Mongoose models and narrow repository APIs.  
+- **Cross-cutting**: Pino + `HttpError` mapping, **Mongo transactions** when rotating refresh tokens.
+
+---
+
+## Authentication (summary)
+
+- **Access token**: short-lived JWT in JSON; kept in memory on the client; `Authorization: Bearer` for API calls.  
+- **Refresh token**: opaque value in an **http-only** cookie; stored hashed in MongoDB; rotated in a transaction; optional **silent retry** on `TOKEN_INVALID` in the frontend client.
+
+---
 
 ## Roles
 
-- `USER` — default for self-serve registration.
-- `ADMIN` — can list users via `GET /v1/users`.
+| Role | Capabilities |
+| ---- | ------------ |
+| `USER` | Default after self-serve registration. |
+| `ADMIN` | Can call `GET /v1/users` (user directory). |
 
-Promote or create an admin:
+Create or promote an admin:
 
 ```bash
-cd apps/api
+cd apps/backend
 MONGODB_URI="mongodb://127.0.0.1:27017/saas" \
 ADMIN_EMAIL="you@company.com" \
 ADMIN_PASSWORD="your-secure-password" \
 npx tsx src/scripts/seedAdmin.ts
 ```
 
-## Stripe mock
+---
 
-- `POST /v1/billing/checkout-session` — authenticated; returns a mock session id and redirect URL.
-- `POST /v1/billing/complete-mock` — marks a mock session complete and stamps a fake Stripe customer id on the user.
-- `POST /v1/billing/webhook` — expects raw JSON and `stripe-signature` header equal to `HMAC-SHA256` of the body using `STRIPE_WEBHOOK_SECRET` (mirrors how you would verify Stripe test webhooks locally).
+## Stripe mock (API)
 
-## Scripts
+- `POST /v1/billing/checkout-session` — authenticated; returns a mock session id and URL.  
+- `POST /v1/billing/complete-mock` — completes a mock session and sets a fake Stripe customer id on the user.  
+- `POST /v1/billing/webhook` — raw JSON + `stripe-signature` HMAC using `STRIPE_WEBHOOK_SECRET` (local testing pattern).
 
-| Command        | Description                          |
-| -------------- | ------------------------------------ |
-| `npm run dev`  | Run API and web together             |
-| `npm run build`| Build both workspaces                |
-| `npm run lint` | ESLint across workspaces             |
-| `npm run test` | API Vitest suite (integration runs when `CI=true` or `RUN_API_INTEGRATION=1` and MongoDB is reachable) |
+---
+
+## NPM scripts (root)
+
+| Command | Description |
+| ------- | ----------- |
+| `npm run dev` | Run backend and frontend together |
+| `npm run build` | Build both workspaces |
+| `npm run lint` | ESLint in both workspaces |
+| `npm run typecheck` | TypeScript check both workspaces |
+| `npm run test` | Tests (backend Vitest; frontend if configured) |
+
+---
 
 ## CI/CD
 
-GitHub Actions workflow `.github/workflows/ci.yml` installs dependencies, runs lint, typecheck, API tests against a MongoDB service container, and builds both apps. Extend the same workflow with deploy jobs (Vercel, Fly.io, Render, ECS, etc.) when you are ready to ship.
+Workflow: `.github/workflows/ci.yml` — dependency install, lint, typecheck, tests (with MongoDB service when integration runs), and production builds. Add deploy jobs (Vercel, Fly.io, Render, etc.) when you are ready.
 
-## Security notes before production
+---
 
-- Rotate JWT secrets and Mongo credentials per environment.
-- Serve the API over HTTPS, tighten CORS to your web origin, and prefer hosting the API behind the same site (reverse proxy) if you need first-party cookies without cross-origin complexity.
-- Add observability (structured logs, metrics, tracing) and database backups appropriate to your SLA.
+## Security before production
+
+- Rotate JWT secrets and database credentials per environment.  
+- Use HTTPS, tighten **CORS** to real app origins only, and keep the same-site / proxy story consistent for cookies.  
+- Add monitoring, backups, and rate limits appropriate to your SLA.

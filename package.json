@@ -1,6 +1,8 @@
 {
   "name": "saas-starter",
   "private": true,
+  "author": "sharad kumar",
+  "description": "Production-grade SaaS starter: Next.js frontend, Express API, MongoDB, JWT auth, RBAC, Stripe mock, CI/CD.",
   "workspaces": [
     "apps/*"
   ],
